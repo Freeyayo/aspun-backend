@@ -10,9 +10,15 @@ const pool = mysql.createPool({
     database: process.env.MYSQL_DB,
 }).promise()
 
-const checkUser = async (username, password) => {
-    const res = await pool.query("SELECT password FROM users WHERE username = ?", [username])
-    return res;
+const checkUser = async (inputUsername, inputPassword) => {
+    const [userInfo] = await pool.query("SELECT password FROM users WHERE username = ?", [inputUsername])
+    const { password } = userInfo[0] || { password: "" };
+    if (inputPassword === password) {
+        return true;
+    }
+    return false;
 }
 
-console.log(checkUser('admin').catch(e => console.log(e)))
+module.exports = {
+    checkUser
+}
