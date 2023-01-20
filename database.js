@@ -19,6 +19,29 @@ const checkUser = async (inputUsername, inputPassword) => {
     return false;
 }
 
+const checkStage = async (stage) => {
+    const [stageMasterInfo] = await pool.query("SELECT * FROM stage_master WHERE stage = ?", [stage])
+    return stageMasterInfo;
+}
+
+const getStageMaster = async () => {
+    const stageMasterList = await pool.query("SELECT * FROM stage_master");
+    return stageMasterList;
+}
+
+const insertStageMaster = async (stage, sort, status) => {
+    const [insertionResult] = await pool.query(`
+        INSERT INTO stage_master (stage, status, sort)
+        VALUES
+        (?, ?, ?);
+    `, [stage, status, sort]);
+
+    return insertionResult;
+}
+
 module.exports = {
-    checkUser
+    checkUser,
+    checkStage,
+    insertStageMaster,
+    getStageMaster,
 }
