@@ -24,13 +24,14 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const traverTree = (data, tree = []) => {
-    data.forEach(item => {
-        if (item[rtchildren]) {
-            item['children'] = traverTree(item[rtchildren]);
-        }
-        tree.push(item)
-    })
-
+    if (data) {
+        data.forEach(item => {
+            if (item[rtchildren]) {
+                item['children'] = traverTree(item[rtchildren]);
+            }
+            tree.push(item)
+        })
+    }
     return tree;
 }
 
