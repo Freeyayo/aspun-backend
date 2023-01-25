@@ -11,6 +11,7 @@ const {
     getUserRoleByIds,
     getCategory,
     getCategoryUserRoles,
+    getParentCategoryById,
 } = require('./database')
 const express = require('express')
 const cors = require('cors')
@@ -217,6 +218,28 @@ app.post("/insert-category", async (req, res) => {
         user_rolesIds
     } = body;
     try {
+        const checkParentCategoryId = async (currentCategoryId, currentCategoryParentId) => {
+            if (currentCategoryParentId === currentCategoryId) {
+                return false;
+            }
+            const { parent_category_id } = await getParentCategoryById(currentCategoryParentId);
+            if (parent_category_id) {
+                if (parent_category_id === currentCategoryId) {
+                    return false;
+                }
+                await checkParentCategoryId(currentCategoryId, parent_category_id)
+            }
+            return true;
+        }
+
+        const hasParentalCategoryId = !await checkParentCategoryId(categoryid, p_categoryid)
+        if (hasParentalCategoryId) {
+            res.send({
+                status: 'failed',
+                result: 'can not choose a parental id as categoryId ',
+            })
+            return;
+        }
         const categoeyInfo = await checkCategory(category);
         const hasCategory = categoeyInfo.length > 0;
         if (hasCategory) {

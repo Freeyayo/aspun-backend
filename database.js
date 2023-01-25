@@ -29,6 +29,11 @@ const checkCategory = async (category) => {
     return categoryInfo;
 }
 
+const getParentCategoryById = async (id) => {
+    const [categoryInfo] = await pool.query("SELECT parent_category_id FROM category WHERE category_id = ?", [id])
+    return categoryInfo;
+}
+
 const getStageMaster = async () => {
     const stageMasterList = await pool.query("SELECT * FROM stage_master");
     return stageMasterList;
@@ -108,4 +113,5 @@ module.exports = {
     getUserRoleByIds,
     getCategory,
     getCategoryUserRoles,
+    getParentCategoryById,
 }
