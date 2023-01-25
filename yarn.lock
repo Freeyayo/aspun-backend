@@ -478,6 +478,11 @@ side-channel@^1.0.4:
     get-intrinsic "^1.0.2"
     object-inspect "^1.9.0"
 
+spurv@^0.0.136:
+  version "0.0.136"
+  resolved "https://registry.yarnpkg.com/spurv/-/spurv-0.0.136.tgz#dc1acd3960459411edee4b723459715810f3e167"
+  integrity sha512-4zRBR4VjElHeCmt78xVbu7C9zXCxhC5+JbiudeSQr1TeRMQqTZksfFII3TLA0VjuHLqL6zGFpGd//bvSckhhTA==
+
 sqlstring@^2.3.2:
   version "2.3.3"
   resolved "https://registry.yarnpkg.com/sqlstring/-/sqlstring-2.3.3.tgz#2ddc21f03bce2c387ed60680e739922c65751d0c"

@@ -2,17 +2,37 @@ const {
     checkUser,
     checkStage,
     insertStageMaster,
+    insertCategory,
+    insertCategoryUserRoles,
     getStageMaster,
+    getStageMasterByIds,
+    checkCategory,
+    getUserRoles,
+    getUserRoleByIds,
+    getCategory,
+    getCategoryUserRoles,
 } = require('./database')
 const express = require('express')
 const cors = require('cors')
 const bodyParser = require('body-parser');
+const { relationTree, rtchildren } = require('spurv');
 const app = express()
 const port = 8080
 
 app.use(cors());
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
+
+const traverTree = (data, tree = []) => {
+    data.forEach(item => {
+        if (item[rtchildren]) {
+            item['children'] = traverTree(item[rtchildren]);
+        }
+        tree.push(item)
+    })
+
+    return tree;
+}
 
 app.get('/', (req, res) => {
     res.send('Hello World!')
@@ -48,6 +68,104 @@ app.get('/get-stage-master', async (req, res) => {
     }
 })
 
+app.get('/get-dropdown-data', async (req, res) => {
+    try {
+        const [userRolesList] = await getUserRoles();
+        const [stageMasterList] = await getStageMaster();
+        const userRoles = userRolesList.map(userRole => {
+            const { id, user_role } = userRole
+            return { id, user_role };
+        })
+        const stageList = stageMasterList.map(stageData => {
+            const { id, stage } = stageData;
+            return { id, stage };
+        })
+        res.send({
+            status: "success",
+            result: {
+                stageList,
+                userRoles,
+            },
+        })
+    } catch (e) {
+        res.send({
+            status: "failed",
+            result: `error message: ${e}`,
+        })
+    }
+})
+
+app.get('/get-category', async (req, res) => {
+    try {
+        const [categoryList = []] = await getCategory();
+        const [categoryUserRolesList] = await getCategoryUserRoles();
+        const structuredCategoryTree = traverTree(relationTree(categoryList, { root: null, id: "category_id", parentId: "parent_category_id" }))
+        const appendUserRolesAndStageMaster = (tree) => {
+            const res = tree.map(item => {
+                return new Promise((res, rej) => {
+                    (async (item) => {
+                        if (item.children) {
+                            item.children = await appendUserRolesAndStageMaster(item.children);
+                        }
+                        const userRolesInfo = categoryUserRolesList.find(cuitem => cuitem.category === item.category);
+                        const userRolesIds = userRolesInfo.user_roles_ids.split(',');
+                        const userRoles = await getUserRoleByIds(userRolesIds);
+                        const user_roles = userRoles[0].map(item => item.user_role);
+                        const stageMasterIds = item.stage_ids.split(',');
+                        const stageMasters = await getStageMasterByIds(stageMasterIds);
+                        const stage_masters = stageMasters[0].map(item => item.stage)
+                        res({ ...item, user_roles, stage_masters })
+                    })(item)
+                })
+            })
+            return res;
+        }
+
+        const unwrapNestedPromiseFields = (tree, unwrapped = []) => {
+            unwrapped = tree.map(node => {
+                return (async () => {
+                    if (node.children) {
+                        await Promise.all(node.children).then(async values => {
+                            const _children = []
+                            for await (let value of (unwrapNestedPromiseFields(values))) {
+                                _children.push(value)
+                            }
+                            node.children = _children
+                        })
+                    }
+                    if (node.then) {
+                        node.then(res => {
+                            return res;
+                        })
+                    }
+                    return node;
+                })(node)
+            })
+            return unwrapped;
+        }
+
+        Promise.all(appendUserRolesAndStageMaster(structuredCategoryTree)).then(async values => {
+            const category = [];
+            for await (let value of (unwrapNestedPromiseFields(values))) {
+                category.push(value);
+            }
+            return category;
+        }).then(categoryRes => {
+            res.send({
+                status: 'success',
+                result: {
+                    category: categoryRes
+                }
+            })
+        })
+    } catch (e) {
+        res.send({
+            status: "failed",
+            result: `error message: ${e}`,
+        })
+    }
+})
+
 app.post('/insert-stage-master', async (req, res) => {
     const body = req.body;
     const { stage, sort, status } = body;
@@ -76,6 +194,65 @@ app.post('/insert-stage-master', async (req, res) => {
         res.send({
             status: 'failed',
             result: `failed params: stage: ${stage}, sort: ${sort}, status: ${status}`,
+        })
+        return;
+    } catch (e) {
+        res.send({
+            status: 'failed',
+            result: `error message: ${e}`,
+        })
+    }
+})
+
+app.post("/insert-category", async (req, res) => {
+    const body = req.body;
+    const {
+        category,
+        categoryid,
+        p_categoryid,
+        sort,
+        status,
+        stagesIds,
+        user_rolesIds
+    } = body;
+    try {
+        const categoeyInfo = await checkCategory(category);
+        const hasCategory = categoeyInfo.length > 0;
+        if (hasCategory) {
+            res.send({
+                status: 'success',
+                result: 'has_category',
+            })
+            return;
+        }
+
+        const categoryInsertionResult = await insertCategory(
+            category,
+            categoryid,
+            stagesIds,
+            p_categoryid,
+            sort,
+            status
+        );
+        const { affectedRows: categoryInsertionSuccess } = categoryInsertionResult;
+
+        const userRolesInsertionResult = await insertCategoryUserRoles(
+            category,
+            user_rolesIds
+        );
+        const { affectedRows: userRolesInsertionSuccess } = userRolesInsertionResult;
+
+        if (categoryInsertionSuccess && userRolesInsertionSuccess) {
+            res.send({
+                status: 'success',
+                result: 'category inserted',
+            })
+            return;
+        }
+
+        res.send({
+            status: 'failed',
+            result: `failed params: category: ${category}, categoryid: ${categoryid}`,
         })
         return;
     } catch (e) {

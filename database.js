@@ -24,9 +24,44 @@ const checkStage = async (stage) => {
     return stageMasterInfo;
 }
 
+const checkCategory = async (category) => {
+    const [categoryInfo] = await pool.query("SELECT * FROM category WHERE category = ?", [category])
+    return categoryInfo;
+}
+
 const getStageMaster = async () => {
     const stageMasterList = await pool.query("SELECT * FROM stage_master");
     return stageMasterList;
+}
+
+const getStageMasterByIds = async (ids) => {
+    const stageMasterList = await pool.query("SELECT * FROM stage_master WHERE id in (?)", [ids]);
+    return stageMasterList;
+}
+
+const getCategory = async () => {
+    const categoryList = await pool.query("SELECT * FROM category");
+    return categoryList;
+}
+
+const getCategoryUserRoles = async () => {
+    const categoryUserRolesList = await pool.query("SELECT * FROM category_user_roles");
+    return categoryUserRolesList;
+}
+
+const getUserRoles = async () => {
+    const userRoles = await pool.query("SELECT * FROM user_roles");
+    return userRoles;
+}
+
+const getUserRoleById = async id => {
+    const userRole = await pool.query("SELECT * FROM user_roles WHERE id = ?", [id]);
+    return userRole;
+}
+
+const getUserRoleByIds = async ids => {
+    const userRole = await pool.query("SELECT * FROM user_roles WHERE id in (?)", [ids]);
+    return userRole;
 }
 
 const insertStageMaster = async (stage, sort, status) => {
@@ -39,9 +74,38 @@ const insertStageMaster = async (stage, sort, status) => {
     return insertionResult;
 }
 
+const insertCategory = async (category, categoryid, stage_ids, parent_category_id, sort, status) => {
+    const [insertionResult] = await pool.query(`
+        INSERT INTO category (category_id, category, stage_ids, parent_category_id, sort, status)
+        VALUES
+        (?, ?, ?, ?, ?, ?);
+    `, [categoryid, category, stage_ids, parent_category_id, sort, status]);
+
+    return insertionResult;
+}
+
+const insertCategoryUserRoles = async (category, user_roles) => {
+    const [insertionResult] = await pool.query(`
+        INSERT INTO category_user_roles (category, user_roles_ids)
+        VALUES
+        (?, ?);
+    `, [category, user_roles]);
+
+    return insertionResult;
+}
+
 module.exports = {
     checkUser,
     checkStage,
     insertStageMaster,
+    insertCategory,
+    insertCategoryUserRoles,
     getStageMaster,
+    getStageMasterByIds,
+    checkCategory,
+    getUserRoles,
+    getUserRoleById,
+    getUserRoleByIds,
+    getCategory,
+    getCategoryUserRoles,
 }
