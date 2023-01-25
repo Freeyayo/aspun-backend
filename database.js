@@ -49,6 +49,11 @@ const getCategory = async () => {
     return categoryList;
 }
 
+const getCategoryId = async () => {
+    const categoryIds = await pool.query("SELECT category_id FROM category");
+    return categoryIds;
+}
+
 const getCategoryUserRoles = async () => {
     const categoryUserRolesList = await pool.query("SELECT * FROM category_user_roles");
     return categoryUserRolesList;
@@ -113,5 +118,6 @@ module.exports = {
     getUserRoleByIds,
     getCategory,
     getCategoryUserRoles,
+    getCategoryId,
     getParentCategoryById,
 }

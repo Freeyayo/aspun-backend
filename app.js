@@ -11,6 +11,7 @@ const {
     getUserRoleByIds,
     getCategory,
     getCategoryUserRoles,
+    getCategoryId,
     getParentCategoryById,
 } = require('./database')
 const express = require('express')
@@ -74,6 +75,7 @@ app.get('/get-dropdown-data', async (req, res) => {
     try {
         const [userRolesList] = await getUserRoles();
         const [stageMasterList] = await getStageMaster();
+        const [categoryIds] = await getCategoryId();
         const userRoles = userRolesList.map(userRole => {
             const { id, user_role } = userRole
             return { id, user_role };
@@ -82,11 +84,17 @@ app.get('/get-dropdown-data', async (req, res) => {
             const { id, stage } = stageData;
             return { id, stage };
         })
+        const categoryIdsList = Array.from(
+            new Set(categoryIds.map(cid => {
+                return cid.category_id
+            }))
+        ).sort((a, b) => a - b)
         res.send({
             status: "success",
             result: {
                 stageList,
                 userRoles,
+                categoryIdsList,
             },
         })
     } catch (e) {
